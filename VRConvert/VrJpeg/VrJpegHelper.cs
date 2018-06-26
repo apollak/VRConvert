@@ -119,7 +119,6 @@ namespace VrJpeg
             if (right == null)
             {
                 left.Dispose();
-                right.Dispose();
                 return null;
             }
 
@@ -155,7 +154,6 @@ namespace VrJpeg
             if (right == null)
             {
                 left.Dispose();
-                right.Dispose();
                 return null;
             }
 

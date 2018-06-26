@@ -33,9 +33,17 @@ namespace VRConvert
             ConversionOptions options = new ConversionOptions();
 
             DisplayInfo(args);
-           
-            options = OptionsFromParameters(args);
-            if (options == null) return 1;
+
+            try
+            {
+                options = OptionsFromParameters(args);
+                if (options == null) throw new Exception("Options could not be interpreted!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return 1;
+            }
 
 
             foreach (var file in options.Source.GetFiles("*.jpg"))
@@ -51,19 +59,27 @@ namespace VRConvert
                 }
 
                 Console.Write($"Converting: {file.Name}  ==> ");
-                switch (options.OutputFormat)
+                try
                 {
-                    case ConversionOptions.OutputFormatOption.P360:
-                        {
-                            ConvertStereoImageEquirectangular(file.FullName, destinationFile.FullName);
-                        }
-                        break;
+                    switch (options.OutputFormat)
+                    {
+                        case ConversionOptions.OutputFormatOption.P360:
+                            {
+                                ConvertStereoImageEquirectangular(file.FullName, destinationFile.FullName);
+                            }
+                            break;
 
-                    case ConversionOptions.OutputFormatOption.SBS180:
-                        {
-                            ConvertStereoImageSBS(file.FullName, destinationFile.FullName);
-                        }
-                        break;
+                        case ConversionOptions.OutputFormatOption.SBS180:
+                            {
+                                ConvertStereoImageSBS(file.FullName, destinationFile.FullName);
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Skipping: {file.FullName} with error: {ex.Message}");
+                    continue;
                 }
                 Console.WriteLine(destinationFile.Name);
             }
@@ -73,6 +89,7 @@ namespace VRConvert
         private static ConversionOptions OptionsFromParameters(string[] args)
         {
             if (args.Length < 2) return null;
+
             ConversionOptions options = new ConversionOptions
             {
                 Source = new DirectoryInfo(args[0]),
@@ -87,7 +104,7 @@ namespace VRConvert
 
         private static void DisplayInfo(string[] args)
         {
-            Console.WriteLine("VRConvert Version 0.1");
+            Console.WriteLine("VRConvert Version 0.2");
             Console.WriteLine("This source includes a slightly modified version of the VRJPEG Library by Joan Charmant ");
             Console.WriteLine("The original library can be found here: https://github.com/JoanCharmant/vrjpeg.git");
             Console.WriteLine("");
@@ -96,7 +113,7 @@ namespace VRConvert
                 Console.WriteLine("VRConvert <SourceDir> <DestinationDir> [-new] [-format:<P360, SBS180>]");
                 Console.WriteLine();
                 Console.WriteLine("Example:");
-                Console.WriteLine(@"    VRConvert 'C:\VR180' 'C:\VR180\Converted' -new -format:P360");
+                Console.WriteLine("    VRConvert \"C:\\VR180\" \"C:\\VR180\\Converted\" -new -format:P360");
             }
         }
 
@@ -106,6 +123,9 @@ namespace VRConvert
             int maxWidth = 8192;
             bool fillPoles = true;
             Bitmap composite = VrJpegHelper.CreateStereoEquirectangular(sourceFilename, EyeImageGeometry.LeftRight, fillPoles, maxWidth);
+
+            if (composite == null)
+                throw new Exception("Failed to create equirectangular image.");
 
             // Save the result.
             string compositeFilename = destinationName;
@@ -118,6 +138,10 @@ namespace VRConvert
             // Extract both eyes and create an equirectangular stereo image.
             bool fillPoles = true;
             Bitmap composite = VrJpegHelper.CreateStereo(sourceFilename, EyeImageGeometry.LeftRight, fillPoles);
+
+            if (composite == null)
+                throw new Exception("Failed to create stereo image.");
+
             // Save the result.
             string compositeFilename = destinationName;
             string compositeFile = Path.Combine(Path.GetDirectoryName(sourceFilename), compositeFilename);
